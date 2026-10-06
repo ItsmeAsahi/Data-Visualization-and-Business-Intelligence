@@ -30,3 +30,7 @@ A modern, Python-based desktop application that ingests raw e-commerce customer 
    Open your terminal or command prompt and install the required data science libraries:
    ```bash
    pip install pandas numpy matplotlib seaborn
+3. **Running the app**
+    Open the terminal and go into the directory in which the file named "app_Tkinter.py" is installed and execute this command
+    ```bash
+    python3 app_Tkinter.py
