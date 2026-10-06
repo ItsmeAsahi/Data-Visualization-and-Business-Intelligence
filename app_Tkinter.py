@@ -35,29 +35,47 @@ class EcommerceAnalyzerApp:
         self.cb_revenue = ttk.Combobox(map_frame, state="readonly")
         self.cb_revenue.grid(row=0, column=1, padx=5)
         
-        tk.Label(map_frame, text="Category/Segment Column:").grid(row=0, column=2, padx=5)
+        tk.Label(map_frame, text="Category/Segment:").grid(row=0, column=2, padx=5)
         self.cb_category = ttk.Combobox(map_frame, state="readonly")
         self.cb_category.grid(row=0, column=3, padx=5)
         
-        tk.Label(map_frame, text="Engagement (e.g., Visits):").grid(row=0, column=4, padx=5)
+        tk.Label(map_frame, text="Engagement (Visits):").grid(row=0, column=4, padx=5)
         self.cb_engagement = ttk.Combobox(map_frame, state="readonly")
         self.cb_engagement.grid(row=0, column=5, padx=5)
         
         btn_analyze = tk.Button(map_frame, text="3. Run Analysis", command=self.run_analysis, font=("Arial", 10, "bold"), bg="#2196F3", fg="white")
         btn_analyze.grid(row=0, column=6, padx=20)
         
-        # --- 3. Bottom Frame: Results (Text + Graphs) ---
-        results_frame = tk.Frame(root)
-        results_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        # --- 3. Bottom Frame: Tabs (Power BI Style) ---
+        self.notebook = ttk.Notebook(root)
+        self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Text Box for KPIs and Theory
-        self.txt_report = tk.Text(results_frame, height=12, font=("Consolas", 10), bg="#f4f4f4")
+        # Tab 1: Report View (Graphs and KPIs)
+        self.tab_report = tk.Frame(self.notebook)
+        self.notebook.add(self.tab_report, text="📊 Report View")
+        
+        self.txt_report = tk.Text(self.tab_report, height=10, font=("Consolas", 10), bg="#f4f4f4")
         self.txt_report.pack(fill="x", pady=5)
         
-        # Canvas for Matplotlib Figures
-        self.canvas_frame = tk.Frame(results_frame)
+        self.canvas_frame = tk.Frame(self.tab_report)
         self.canvas_frame.pack(fill="both", expand=True)
         self.canvas_widget = None
+
+        # Tab 2: Data View (Excel Sheet Viewer)
+        self.tab_data = tk.Frame(self.notebook)
+        self.notebook.add(self.tab_data, text="🗃️ Data View (Excel)")
+        
+        # Add Scrollbars to the Data Viewer
+        scroll_y = ttk.Scrollbar(self.tab_data, orient="vertical")
+        scroll_x = ttk.Scrollbar(self.tab_data, orient="horizontal")
+        
+        self.tree = ttk.Treeview(self.tab_data, yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+        scroll_y.config(command=self.tree.yview)
+        scroll_x.config(command=self.tree.xview)
+        
+        scroll_y.pack(side="right", fill="y")
+        scroll_x.pack(side="bottom", fill="x")
+        self.tree.pack(fill="both", expand=True)
 
     def load_demo_data(self):
         """Generates synthetic data for quick testing."""
@@ -70,8 +88,9 @@ class EcommerceAnalyzerApp:
         }
         self.df = pd.DataFrame(data)
         self.update_dropdowns()
+        self.populate_data_viewer() # Fill the Excel viewer
         self.lbl_status.config(text="Demo data loaded successfully.", fg="green")
-        self.run_analysis() # Instant generation
+        self.run_analysis()
 
     def load_csv(self):
         """Opens a file dialog to load any CSV."""
@@ -81,8 +100,9 @@ class EcommerceAnalyzerApp:
                 self.df = pd.read_csv(filepath)
                 self.df.columns = self.df.columns.str.strip()
                 self.update_dropdowns()
+                self.populate_data_viewer() # Fill the Excel viewer
                 self.lbl_status.config(text=f"Loaded: {filepath.split('/')[-1]}", fg="green")
-                self.run_analysis() # Instant generation
+                self.run_analysis()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to read file:\n{e}")
 
@@ -105,6 +125,24 @@ class EcommerceAnalyzerApp:
             self.cb_category.current(0)
             self.cb_engagement.current(min(1, len(numeric_cols)-1))
 
+    def populate_data_viewer(self):
+        """Fills the Treeview (Excel sheet tab) with the raw Pandas DataFrame."""
+        # Clear old data
+        self.tree.delete(*self.tree.get_children())
+        
+        if self.df is not None:
+            # Set up column headers
+            self.tree["columns"] = list(self.df.columns)
+            self.tree["show"] = "headings"
+            
+            for col in self.tree["columns"]:
+                self.tree.heading(col, text=col)
+                self.tree.column(col, width=120, anchor="center")
+            
+            # Insert data rows
+            for _, row in self.df.iterrows():
+                self.tree.insert("", "end", values=list(row))
+
     def run_analysis(self):
         """Processes data, writes the text report, and draws charts."""
         if self.df is None:
@@ -115,7 +153,6 @@ class EcommerceAnalyzerApp:
         eng_col = self.cb_engagement.get()
         
         if not val_col or not cat_col or not eng_col:
-            messagebox.showwarning("Warning", "Please select all columns.")
             return
 
         # --- Calculate Metrics ---
@@ -178,6 +215,9 @@ BUSINESS THEORY 1: The Pareto Principle (Category Contribution)
         self.canvas_widget = FigureCanvasTkAgg(fig, master=self.canvas_frame)
         self.canvas_widget.draw()
         self.canvas_widget.get_tk_widget().pack(fill="both", expand=True)
+        
+        # Ensure the Report tab is visible after running analysis
+        self.notebook.select(self.tab_report)
 
 if __name__ == "__main__":
     root = tk.Tk()
