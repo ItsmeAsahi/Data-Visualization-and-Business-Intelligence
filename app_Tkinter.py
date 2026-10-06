@@ -39,7 +39,7 @@ class EcommerceAnalyzerApp:
         self.cb_category = ttk.Combobox(map_frame, state="readonly")
         self.cb_category.grid(row=0, column=3, padx=5)
         
-        tk.Label(map_frame, text="Engagement Column (e.g., Visits):").grid(row=0, column=4, padx=5)
+        tk.Label(map_frame, text="Engagement (e.g., Visits):").grid(row=0, column=4, padx=5)
         self.cb_engagement = ttk.Combobox(map_frame, state="readonly")
         self.cb_engagement.grid(row=0, column=5, padx=5)
         
@@ -51,7 +51,7 @@ class EcommerceAnalyzerApp:
         results_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Text Box for KPIs and Theory
-        self.txt_report = tk.Text(results_frame, height=15, font=("Consolas", 10), bg="#f4f4f4")
+        self.txt_report = tk.Text(results_frame, height=12, font=("Consolas", 10), bg="#f4f4f4")
         self.txt_report.pack(fill="x", pady=5)
         
         # Canvas for Matplotlib Figures
@@ -71,6 +71,7 @@ class EcommerceAnalyzerApp:
         self.df = pd.DataFrame(data)
         self.update_dropdowns()
         self.lbl_status.config(text="Demo data loaded successfully.", fg="green")
+        self.run_analysis() # Instant generation
 
     def load_csv(self):
         """Opens a file dialog to load any CSV."""
@@ -81,6 +82,7 @@ class EcommerceAnalyzerApp:
                 self.df.columns = self.df.columns.str.strip()
                 self.update_dropdowns()
                 self.lbl_status.config(text=f"Loaded: {filepath.split('/')[-1]}", fg="green")
+                self.run_analysis() # Instant generation
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to read file:\n{e}")
 
@@ -106,7 +108,6 @@ class EcommerceAnalyzerApp:
     def run_analysis(self):
         """Processes data, writes the text report, and draws charts."""
         if self.df is None:
-            messagebox.showwarning("Warning", "Please load data first.")
             return
             
         val_col = self.cb_revenue.get()
@@ -130,28 +131,22 @@ class EcommerceAnalyzerApp:
         report = f"""{'='*60}
 EXECUTIVE KPI SUMMARY
 {'='*60}
-Total Revenue Analyzed: ${total_revenue:,.2f}
-Average Value per Customer: ${avg_order:,.2f}
+Total Revenue Analyzed: ${total_revenue:,.2f}  |  Avg Value per Customer: ${avg_order:,.2f}
 Top Performing Segment: {top_cat} ({top_cat_pct:.1f}% of Total Revenue)
 
 BUSINESS THEORY 1: The Pareto Principle (Category Contribution)
-In e-commerce, identifying 'cash cow' segments ensures optimal marketing spend.
-Segment Breakdown:
 """
         for cat, val in category_totals.items():
             pct = (val / total_revenue) * 100
             report += f" - {cat}: {pct:.1f}% (${val:,.2f})\n"
 
-        report += f"""
-BUSINESS THEORY 2: Intent vs. Browsing Behavior
-Correlation between {eng_col} and {val_col}: {correlation:.2f}
-"""
+        report += f"\nBUSINESS THEORY 2: Intent vs. Browsing Behavior\nCorrelation between {eng_col} and {val_col}: {correlation:.2f}\n"
         if correlation > 0.5:
             report += "INSIGHT: Strong Positive Correlation. Higher engagement strongly drives higher spend.\n"
         elif correlation > 0.1:
             report += "INSIGHT: Weak Correlation. Engagement leads to some sales, but indicates window shopping.\n"
         else:
-            report += "INSIGHT: Poor Correlation. More visits do not equate to higher spend. Investigate pricing or site friction.\n"
+            report += "INSIGHT: Poor Correlation. More visits do not equate to higher spend.\n"
             
         self.txt_report.insert(tk.END, report)
 
@@ -162,18 +157,18 @@ Correlation between {eng_col} and {val_col}: {correlation:.2f}
         sns.set_theme(style="whitegrid")
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
         
-        # Chart 1: Donut Chart
+        # Donut Chart
         colors = sns.color_palette('pastel')[0:len(category_totals)]
         ax1.pie(category_totals.values, labels=category_totals.index, autopct='%1.1f%%', 
                 colors=colors, startangle=90, pctdistance=0.85, 
                 wedgeprops=dict(width=0.4, edgecolor='w'))
         ax1.set_title(f"Revenue by {cat_col}", fontsize=12)
         
-        # Chart 2: Scatter Plot
+        # Scatter Plot
         sns.scatterplot(x=eng_col, y=val_col, hue=cat_col, data=self.df, palette='Set2', alpha=0.7, ax=ax2)
         z = np.polyfit(self.df[eng_col].dropna(), self.df[val_col].dropna(), 1)
         p = np.poly1d(z)
-        ax2.plot(self.df[eng_col], p(self.df[eng_col]), "r--", alpha=0.5, label="Trendline")
+        ax2.plot(self.df[eng_col], p(self.df[eng_col]), "r--", alpha=0.5)
         ax2.set_title(f"Engagement vs. Spend")
         ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
         
