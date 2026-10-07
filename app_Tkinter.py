@@ -214,7 +214,7 @@ class EcommerceAnalyzerApp:
             self.canvas_widget.get_tk_widget().destroy()
             
         sns.set_theme(style="white", palette="muted")
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4), facecolor='white')
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5), facecolor='white')
         
         # Donut Chart
         colors = sns.color_palette('pastel')[0:len(category_totals)]
